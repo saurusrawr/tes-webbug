@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+body{background:#000;height:100vh;overflow:hidden;color:#fff;}
+canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;}
+.menu-btn{position:fixed;top:20px;left:20px;font-size:28px;color:red;cursor:pointer;z-index:1001;}
+.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100%;background:#111;border-right:2px solid red;box-shadow:2px 0 20px rgba(255,0,0,0.5);padding:20px;transition:0.4s;z-index:1002;display:flex;flex-direction:column;}
+.sidebar.active{left:0;}
+.sidebar .user-info{display:flex;align-items:center;margin-bottom:20px;}
+.sidebar .user-info i{font-size:24px;color:red;margin-right:10px;}
+.sidebar .user-info div{display:flex;flex-direction:column;}
+.sidebar h3{margin:12px 0;font-size:16px;}
+.sidebar h3 a{color:#f55;text-decoration:none;display:flex;align-items:center;}
+.sidebar h3 a i{margin-right:8px;}
+.sidebar h3 a:hover{text-shadow:0 0 8px red;}
+#backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:none;z-index:1000;opacity:0.0;}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;position:relative;}
+.card{background:rgba(20,20,20,0.85);border:1px solid red;border-radius:15px;padding:30px;width:400px;text-align:center;box-shadow:0 0 25px rgba(255,0,0,0.7);}
+.card h2{color:red;margin-bottom:15px;}
+.contact-info{font-size:14px;text-align:left;line-height:1.6;}
+.contact-info i{color:red;margin-right:8px;}
+.contact-info b{color:red;}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="backdrop" onclick="toggleSidebar()"></div>
+<div class="menu-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></div>
+<div class="sidebar" id="sidebar">
+  <div class="user-info">
+    <i class="fa-solid fa-user-shield"></i>
+    <div>
+      <span id="sidebarUsername">User</span>
+      <span id="sidebarRole">VIP</span>
+    </div>
+  </div>
+  <h3><a href="index.html"><i class="fa-solid fa-house"></i> Home</a></h3>
+  <h3><a href="bug.html"><i class="fa-solid fa-bug"></i> Bug Attack</a></h3>
+  <h3><a href="ddos.html"><i class="fa-solid fa-bolt"></i> DDoS Attack</a></h3>
+  <h3><a href="track.html"><i class="fa-solid fa-location-dot"></i> Tracking IP</a></h3>
+  <h3><a href="contac.html"><i class="fa-solid fa-envelope"></i> Contact</a></h3>
+  <h3><a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Log out</a></h3>
+</div>
+<div class="center">
+  <div class="card">
+    <h2>Contact</h2>
+    <div class="contact-info">
+      <p><i class="fa-brands fa-telegram"></i> <b>Telegram:</b> @VinnSigmaa</p>
+      <p><i class="fa-brands fa-telegram"></i> <b>Telegram:</b> @VinnSigmaa</p>
+      <p><i class="fa-solid fa-envelope"></i> <b>Email:</b> dimzxbisnis@gmail.com</p>
+      <p><i class="fa-solid fa-envelope"></i> <b>Email:</b> dimzxaecuy@gmail.com</p>
+    </div>
+  </div>
+</div>
+<script src="https://kit.fontawesome.com/a2e0e6ad5b.js" crossorigin="anonymous"></script>
+<script>
+function toggleSidebar() {
+  const sidebar=document.getElementById('sidebar');
+  const backdrop=document.getElementById('backdrop');
+  sidebar.classList.toggle('active');
+  backdrop.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+}
+document.querySelectorAll("#sidebar a").forEach(link=>{
+  link.addEventListener("click",()=>{
+    document.getElementById("sidebar").classList.remove("active");
+    document.getElementById("backdrop").style.display="none";
+  });
+});
+function logout() {
+  localStorage.removeItem('authToken');
+  window.location.href='login.html';
+}
+const token = localStorage.getItem('authToken');
+if(!token){window.location.href='login.html';}
+function loadUserInfo(){
+  try{
+    const payload=JSON.parse(atob(token));
+    document.getElementById('sidebarUsername').textContent = payload.username || 'User';
+    document.getElementById('sidebarRole').textContent = payload.role || 'VIP';
+  }catch(e){logout();}
+}
+document.addEventListener('DOMContentLoaded',loadUserInfo);
+const canvas=document.getElementById("bg"), ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+let points=[];
+for(let i=0;i<60;i++){
+  points.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*0.7,vy:(Math.random()-0.5)*0.7});
+}
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  points.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>canvas.width)p.vx*=-1;
+    if(p.y<0||p.y>canvas.height)p.vy*=-1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fillStyle="red"; ctx.fill();
+  });
+  for(let i=0;i<points.length;i++){
+    for(let j=i+1;j<points.length;j++){
+      let dx=points[i].x-points[j].x;
+      let dy=points[i].y-points[j].y;
+      let dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<150){
+        ctx.strokeStyle="rgba(255,0,0,"+(1-dist/150)+")";
+        ctx.lineWidth=0.7;
+        ctx.beginPath(); ctx.moveTo(points[i].x,points[i].y);
+        ctx.lineTo(points[j].x,points[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+window.addEventListener("resize",()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XP - IP Tracker</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+body{background:#000;height:100vh;overflow:hidden;color:#fff;}
+canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;}
+.menu-btn{position:fixed;top:20px;left:20px;font-size:28px;color:red;cursor:pointer;z-index:1001;}
+.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100%;background:#111;border-right:2px solid red;box-shadow:2px 0 20px rgba(255,0,0,0.5);padding:20px;transition:0.4s;z-index:1002;display:flex;flex-direction:column;}
+.sidebar.active{left:0;}
+.sidebar .user-info{display:flex;align-items:center;margin-bottom:20px;}
+.sidebar .user-info i{font-size:24px;color:red;margin-right:10px;}
+.sidebar .user-info div{display:flex;flex-direction:column;}
+.sidebar h3{margin:12px 0;font-size:16px;}
+.sidebar h3 a{color:#f55;text-decoration:none;display:flex;align-items:center;gap:10px;}
+.sidebar h3 a i{font-size:18px;flex-shrink:0;}
+#backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:none;z-index:1000;opacity:0;}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;position:relative;}
+.card{background:rgba(20,20,20,0.85);border:1px solid red;border-radius:15px;padding:30px;width:400px;text-align:center;box-shadow:0 0 25px rgba(255,0,0,0.7);}
+.card h2{color:red;margin-bottom:15px;}
+.form-group{margin-bottom:15px;display:flex;align-items:center;border:1px solid red;border-radius:8px;padding:0 10px;background:#111;height:40px;}
+.form-group input{flex:1;border:none;outline:none;background:transparent;color:#fff;font-size:14px;padding-left:10px;}
+.form-group .icon{color:red;font-size:16px;margin-right:8px;}
+button{width:100%;padding:12px;background:red;border:none;border-radius:8px;color:#fff;font-weight:bold;cursor:pointer;margin-top:8px;box-shadow:0 0 15px red;transition:0.2s;font-size:15px;}
+button:hover{background:#ff3333;}
+button:disabled{background:#222;box-shadow:none;cursor:not-allowed;}
+.result{margin-top:20px;text-align:left;}
+.result div{margin:6px 0;display:flex;align-items:center;}
+.result div i{color:red;margin-right:8px;width:20px;}
+#map{height:200px;width:100%;border:1px solid red;margin-top:12px;border-radius:8px;}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:2000;justify-content:center;align-items:center;}
+.modal-content{background:#111;border:1px solid red;border-radius:10px;padding:20px;width:350px;text-align:center;box-shadow:0 0 20px red;}
+.modal-content h3{margin-bottom:15px;}
+.modal-content.error h3{color:#f55;}
+.modal-content p{margin-bottom:20px;line-height:1.5em;}
+.modal-content button{background:red;padding:8px 20px;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
+.modal-content button:hover{background:#ff3333;}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="backdrop" onclick="toggleSidebar()"></div>
+<div class="menu-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></div>
+
+<div class="sidebar" id="sidebar">
+  <div class="user-info">
+    <i class="fa-solid fa-user-shield"></i>
+    <div><span id="sidebarUsername">User</span><span id="sidebarRole">VIP</span></div>
+  </div>
+  <h3><a href="index.html"><i class="fa-solid fa-house"></i> Home</a></h3>
+  <h3><a href="bug.html"><i class="fa-solid fa-bug"></i> Bug Attack</a></h3>
+  <h3><a href="ddos.html"><i class="fa-solid fa-bolt"></i> DDoS Attack</a></h3>
+  <h3><a href="track.html"><i class="fa-solid fa-map-location-dot"></i> Tracking IP</a></h3>
+  <h3><a href="contac.html"><i class="fa-solid fa-envelope"></i> Contact</a></h3>
+  <h3><a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Log out</a></h3>
+</div>
+
+<div class="center">
+  <div class="card">
+    <h2>XP - IP Tracker</h2>
+    <div class="form-group">
+      <i class="fas fa-network-wired icon"></i>
+      <input type="text" id="ipInput" placeholder="Enter IP Address">
+    </div>
+    <button id="trackBtn"><i class="fa-solid fa-search"></i> Track IP</button>
+    <div class="result" id="result"></div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<div id="popup" class="modal">
+  <div class="modal-content error" id="popupContent">
+    <h3 id="popupTitle"></h3>
+    <p id="popupMessage"></p>
+    <button onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const token = localStorage.getItem('authToken');
+if(!token) window.location.href='login.html';
+
+function logout(){ localStorage.removeItem('authToken'); window.location.href='login.html'; }
+function toggleSidebar(){ 
+  const sidebar=document.getElementById('sidebar'); 
+  const backdrop=document.getElementById('backdrop'); 
+  sidebar.classList.toggle('active'); 
+  backdrop.style.display=sidebar.classList.contains('active')?'block':'none'; 
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  try{
+    const payload = JSON.parse(atob(token));
+    document.getElementById('sidebarUsername').textContent = payload.username;
+    document.getElementById('sidebarRole').textContent = payload.role;
+  }catch{
+    logout();
+  }
+});
+
+function showPopup(title,msg){ 
+  document.getElementById('popupTitle').textContent = title; 
+  document.getElementById('popupMessage').innerHTML = msg; 
+  document.getElementById('popup').style.display='flex'; 
+}
+function closePopup(){ document.getElementById('popup').style.display='none'; }
+
+let map, marker;
+
+document.getElementById('trackBtn').addEventListener('click', async()=>{
+  const ip = document.getElementById('ipInput').value.trim();
+  if(!ip) return showPopup("Error","Please enter an IP address");
+  const btn = document.getElementById('trackBtn');
+  btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Tracking...'; 
+  btn.disabled=true;
+
+  try{
+    const res = await fetch(`https://ipwhois.app/json/${ip}`);
+    const data = await res.json();
+    if(!data.success) return showPopup("Error","Invalid IP");
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML=`
+      <div><i class="fa-solid fa-network-wired"></i> <b>IP:</b> ${data.ip}</div>
+      <div><i class="fa-solid fa-globe"></i> <b>Country:</b> ${data.country}</div>
+      <div><i class="fa-solid fa-location-dot"></i> <b>Region:</b> ${data.region}</div>
+      <div><i class="fa-solid fa-city"></i> <b>City:</b> ${data.city}</div>
+      <div><i class="fa-solid fa-envelope"></i> <b>ZIP:</b> ${data.postal}</div>
+      <div><i class="fa-solid fa-clock"></i> <b>Timezone:</b> ${data.timezone_gmt}</div>
+      <div><i class="fa-solid fa-signal"></i> <b>ISP:</b> ${data.isp}</div>
+      <div><i class="fa-solid fa-building"></i> <b>Org:</b> ${data.org}</div>
+      <div><i class="fa-solid fa-server"></i> <b>ASN:</b> ${data.asn}</div>
+      <div><i class="fa-solid fa-map"></i> <b>Lat/Lon:</b> ${data.latitude}, ${data.longitude}</div>
+    `;
+
+    if(!map){
+      map = L.map('map').setView([data.latitude, data.longitude], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      marker = L.marker([data.latitude, data.longitude]).addTo(map);
+    } else {
+      map.setView([data.latitude, data.longitude], 10);
+      marker.setLatLng([data.latitude, data.longitude]);
+    }
+
+  }catch(err){
+    console.error(err);
+    showPopup("Error","Failed to fetch IP info");
+  }finally{
+    btn.innerHTML='<i class="fa-solid fa-search"></i> Track IP';
+    btn.disabled=false;
+  }
+});
+
+const canvas=document.getElementById("bg"),ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth; 
+canvas.height=window.innerHeight;
+let particles=[];
+for(let i=0;i<70;i++){
+  particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:Math.random()-0.5,vy:Math.random()-0.5});
+}
+
+function anim(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach((p,i)=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>canvas.width) p.vx*=-1;
+    if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fillStyle="red"; ctx.fill();
+    for(let j=i+1;j<particles.length;j++){
+      let q=particles[j], dx=p.x-q.x, dy=p.y-q.y, dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.strokeStyle="rgba(255,0,0,0.2)";
+        ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+      }
+    }
+  });
+  requestAnimationFrame(anim);
+}
+anim();
+window.addEventListener("resize",()=>{canvas.width=window.innerWidth; canvas.height=window.innerHeight;});
+</script>
+</body>
+</html>

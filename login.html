@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+body{
+  background:#000;
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:#fff;
+  padding:10px;
+}
+canvas#bg{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  z-index:-1;
+  background:#000;
+}
+.card{
+  background:rgba(20,20,20,0.85);
+  border:1px solid red;
+  border-radius:15px;
+  padding:30px;
+  width:100%;
+  max-width:350px;
+  text-align:center;
+  box-shadow:0 0 25px rgba(255,0,0,0.7);
+  position:relative;
+}
+.card img.avatar{
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid red;
+  margin-bottom:20px;
+}
+.card h2{color:red;margin-bottom:20px;}
+.form-group{
+  margin-bottom:15px;
+  display:flex;
+  align-items:center;
+  border:1px solid red;
+  border-radius:8px;
+  padding:0 10px;
+  background:#111;
+  height:40px;
+}
+.form-group input{
+  flex:1;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:#fff;
+  font-size:14px;
+  padding-left:10px;
+}
+.form-group .icon{
+  color:red;
+  font-size:16px;
+}
+.form-group input:focus + .icon{
+  color:#ff6666;
+}
+button{
+  width:100%;
+  padding:12px;
+  background:red;
+  border:none;
+  border-radius:8px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+  margin-top:8px;
+  box-shadow:0 0 15px red;
+  transition:0.2s;
+  font-size:15px;
+}
+button:hover{background:#ff3333;}
+button:disabled{background:#222;box-shadow:none;cursor:not-allowed;}
+.result{
+  margin-top:12px;
+  padding:10px;
+  border-radius:8px;
+  font-size:14px;
+  display:none;
+  text-align:left;
+  line-height:1.4em;
+}
+.result.success{background:rgba(0,255,0,0.1);color:#0f0;border:1px solid #0f0;}
+.result.error{background:rgba(255,0,0,0.1);color:#f55;border:1px solid red;}
+@media (max-width:400px){
+  .card{padding:20px;}
+  input,button{font-size:13px;padding:10px;}
+  .card h2{font-size:18px;}
+  .card img.avatar{width:80px;height:80px;}
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="card">
+  <img class="avatar" src="https://i.imgur.com/BpBph7h.jpeg" alt="Avatar">
+  <h2><i class="fa-solid fa-user-shield"></i> LOGIN</h2>
+  <form id="loginForm">
+    <div class="form-group">
+      <i class="fas fa-user icon"></i>
+      <input type="text" id="username" placeholder="Username" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <i class="fas fa-lock icon"></i>
+      <input type="password" id="password" placeholder="Password" autocomplete="off">
+    </div>
+    <button id="loginBtn" type="submit"><i class="fa-solid fa-rocket"></i> ACCESS</button>
+  </form>
+  <div id="result" class="result"></div>
+</div>
+
+<script src="https://kit.fontawesome.com/a2e0e6ad5b.js" crossorigin="anonymous"></script>
+<script>
+const canvas=document.getElementById("bg");
+const ctx=canvas.getContext("2d");
+function resizeCanvas(){canvas.height=window.innerHeight;canvas.width=window.innerWidth;}
+resizeCanvas();
+window.addEventListener("resize",resizeCanvas);
+
+const chars="01ABCDEFGHJKMNPRSTUVWXYZ#$%&*+";
+const fontSize=16;
+let columns=Math.floor(canvas.width/fontSize);
+let drops=Array(columns).fill(1);
+
+function draw(){
+  ctx.fillStyle="rgba(0,0,0,0.08)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="red";
+  ctx.font=fontSize+"px monospace";
+  for(let i=0;i<drops.length;i++){
+    const text=chars.charAt(Math.floor(Math.random()*chars.length));
+    ctx.fillText(text,i*fontSize,drops[i]*fontSize);
+    if(drops[i]*fontSize>canvas.height&&Math.random()>0.975) drops[i]=0;
+    drops[i]++;
+  }
+}
+setInterval(draw,33);
+
+if(localStorage.getItem('authToken')) window.location.href='index.html';
+
+document.getElementById('loginForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const username=document.getElementById('username').value.trim();
+  const password=document.getElementById('password').value.trim();
+  const resultDiv=document.getElementById('result');
+  const loginBtn=document.getElementById('loginBtn');
+
+  if(!username||!password) return showResult('Username and password cannot be empty.','error');
+
+  loginBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Logging in...';
+  loginBtn.disabled=true; resultDiv.style.display='none';
+
+  try{
+    const res=await fetch('/api/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username,password})
+    });
+    const data=await res.json();
+
+    if(data.success){
+      localStorage.setItem('authToken',data.token);
+      showResult('Login successful!','success');
+      setTimeout(()=>{window.location.href='imdex.html';},1500);
+    }else showResult(`${data.message}`,'error');
+  }catch(err){
+    console.error('Login error:',err);
+    showResult('Server error. Please try again.','error');
+  }finally{
+    loginBtn.innerHTML='<i class="fa-solid fa-rocket"></i> ACCESS';
+    loginBtn.disabled=false;
+  }
+});
+
+function showResult(message,type){
+  const resultDiv=document.getElementById('result');
+  resultDiv.innerHTML=message;
+  resultDiv.className=`result ${type}`;
+  resultDiv.style.display='block';
+}
+</script>
+</body>
+</html>

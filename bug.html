@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyuzami - Bug</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+body{background:#000;height:100vh;overflow:hidden;color:#fff;}
+canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;}
+
+.menu-btn{position:fixed;top:20px;left:20px;font-size:28px;color:red;cursor:pointer;z-index:1001;}
+.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100%;background:#111;border-right:2px solid red;box-shadow:2px 0 20px rgba(255,0,0,0.5);padding:20px;transition:0.4s;z-index:1002;display:flex;flex-direction:column;}
+.sidebar.active{left:0;}
+.sidebar .user-info{display:flex;align-items:center;margin-bottom:20px;}
+.sidebar .user-info i{font-size:24px;color:red;margin-right:10px;}
+.sidebar .user-info div{display:flex;flex-direction:column;}
+.sidebar h3{margin:12px 0;font-size:16px;}
+.sidebar h3 a{color:#f55;text-decoration:none;display:flex;align-items:center;}
+.sidebar h3 a i{margin-right:8px;}
+.sidebar h3 a:hover{text-shadow:0 0 8px red;}
+#backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:none;z-index:1000;opacity:0.0;}
+
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;position:relative;}
+.card{background:rgba(20,20,20,0.85);border:1px solid red;border-radius:15px;padding:30px;width:380px;text-align:center;box-shadow:0 0 25px rgba(255,0,0,0.7);}
+.card h2{color:red;margin-bottom:15px;}
+.card input{width:100%;padding:10px;border-radius:8px;border:1px solid red;background:#111;color:#fff;margin-bottom:15px;}
+.attack-btn{width:100%;padding:12px;background:red;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:bold;box-shadow:0 0 15px red;margin-bottom:15px;transition:0.2s;}
+.attack-btn:hover{background:#ff3333;}
+
+.custom-select{background:#111;color:#fff;border-radius:8px;padding:10px;cursor:pointer;user-select:none;margin-bottom:15px;}
+.custom-select .selected{display:flex;justify-content:space-between;align-items:center;}
+.custom-select .options{background:#000;border:1px solid red;margin-top:5px;border-radius:8px;overflow:hidden;flex-direction:column;display:none;}
+.custom-select .options div{padding:10px;cursor:pointer;display:flex;align-items:center;}
+.custom-select .options div i{margin-right:8px;}
+.custom-select .options div:hover{background:red;}
+
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:2000;justify-content:center;align-items:center;}
+.modal-content{background:#111;border:1px solid red;border-radius:10px;padding:20px;width:350px;text-align:center;box-shadow:0 0 20px red;}
+.modal-content h3{margin-bottom:15px;}
+.modal-content.success h3{color:#0f0;}
+.modal-content.error h3{color:#f55;}
+.modal-content p{margin-bottom:20px;line-height:1.5em;}
+.modal-content button{background:red;padding:8px 20px;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
+.modal-content button:hover{background:#ff3333;}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div id="backdrop" onclick="toggleSidebar()"></div>
+<div class="menu-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></div>
+
+<div class="sidebar" id="sidebar">
+  <div class="user-info">
+    <i class="fa-solid fa-user-shield"></i>
+    <div><span id="sidebarUsername">User</span><span id="sidebarRole">VIP</span></div>
+  </div>
+  <h3><a href="index.html"><i class="fa-solid fa-house"></i> Home</a></h3>
+  <h3><a href="bug.html"><i class="fa-solid fa-bug"></i> Bug Attack</a></h3>
+  <h3><a href="ddos.html"><i class="fa-solid fa-bolt"></i> DDoS Attack</a></h3>
+  <h3><a href="track.html"><i class="fa-solid fa-map-location-dot"></i> Tracking IP</a></h3>
+  <h3><a href="contac.html"><i class="fa-solid fa-envelope"></i> Contact</a></h3>
+  <h3><a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Log out</a></h3>
+</div>
+
+<div class="center">
+  <div class="card">
+    <h2>KYUZAMI</h2>
+    <input type="text" id="target" placeholder="Enter target number">
+    <div class="custom-select" id="customMethodSelect">
+      <div class="selected">Select Method <i class="fa-solid fa-chevron-down"></i></div>
+      <div class="options">
+        <div data-value="crash"><i class="fa-solid fa-bolt"></i> Crash</div>
+        <div data-value="foreclose"><i class="fa-solid fa-fire"></i> Fore Close</div>
+        <div data-value="ios"><i class="fa-brands fa-apple"></i> iOS</div>
+        <div data-value="delay"><i class="fa-solid fa-clock"></i> Delay</div>
+        <div data-value="blank"><i class="fa-solid fa-ban"></i> Blank</div>
+      </div>
+    </div>
+    <button class="attack-btn" id="attackBtn"><i class="fa-solid fa-bug"></i> LAUNCH BUG ATTACK</button>
+  </div>
+</div>
+
+<div id="popup" class="modal">
+  <div class="modal-content" id="popupContent">
+    <h3 id="popupTitle"></h3>
+    <p id="popupMessage"></p>
+    <button onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script>
+function toggleSidebar() {
+  const sidebar=document.getElementById('sidebar');
+  const backdrop=document.getElementById('backdrop');
+  sidebar.classList.toggle('active');
+  backdrop.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+}
+document.querySelectorAll("#sidebar a").forEach(link=>{
+  link.addEventListener("click",()=>{
+    document.getElementById("sidebar").classList.remove("active");
+    document.getElementById("backdrop").style.display="none";
+  });
+});
+
+function logout(){localStorage.removeItem('authToken');window.location.href='login.html';}
+
+const token=localStorage.getItem('authToken');
+if(!token) window.location.href='login.html';
+function loadUserInfo(){
+  try{const payload=JSON.parse(atob(token));
+    document.getElementById('sidebarUsername').textContent=payload.username;
+    document.getElementById('sidebarRole').textContent=payload.role;
+  }catch(e){logout();}
+}
+
+document.addEventListener('DOMContentLoaded', loadUserInfo);
+
+const customSelect=document.getElementById('customMethodSelect');
+const selected=customSelect.querySelector('.selected');
+const optionsDiv=customSelect.querySelector('.options');
+let selectedMethod="";
+selected.addEventListener('click', ()=> optionsDiv.style.display=optionsDiv.style.display==='flex'?'none':'flex');
+optionsDiv.querySelectorAll('div').forEach(opt=>{
+  opt.addEventListener('click', ()=>{
+    selectedMethod=opt.dataset.value;
+    selected.innerHTML=opt.innerHTML+' <i class="fa-solid fa-chevron-down"></i>';
+    optionsDiv.style.display='none';
+  });
+});
+
+document.getElementById('attackBtn').addEventListener('click', async ()=>{
+  const target=document.getElementById('target').value.trim();
+  const btn=document.getElementById('attackBtn');
+  if(!target||!selectedMethod) return showPopup("Error","Please complete all fields.","error");
+
+  btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Launching...';
+  btn.disabled=true;
+
+  try{
+    const response=await fetch(`/attack/metode?target=${encodeURIComponent(target)}&metode=${encodeURIComponent(selectedMethod)}`,{
+      headers:{'Authorization':`Bearer ${token}`}
+    });
+    const data=await response.json();
+    if(response.ok && data.status){
+      showPopup("Success",`<b>Target:</b> ${data.target}<br><b>Method:</b> ${data.metode}<br><b>Result:</b> ${data.result}`,"success");
+    }else{
+      showPopup("Error",data.message||"Attack failed","error");
+    }
+  }catch(err){
+    showPopup("Error","Network error, please try again.","error");
+  }finally{
+    setTimeout(()=>{btn.innerHTML='<i class="fa-solid fa-bug"></i> LAUNCH BUG ATTACK';btn.disabled=false;},1500);
+  }
+});
+
+function showPopup(title,msg,type){
+  const popup=document.getElementById('popup');
+  const content=document.getElementById('popupContent');
+  document.getElementById('popupTitle').textContent=title;
+  document.getElementById('popupMessage').innerHTML=msg;
+  content.className=`modal-content ${type}`;
+  popup.style.display='flex';
+}
+function closePopup(){document.getElementById('popup').style.display='none';}
+
+const canvas=document.getElementById("bg"),ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+let points=[];const POINTS=60;
+for(let i=0;i<POINTS;i++){points.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*0.7,vy:(Math.random()-0.5)*0.7});}
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let p of points){
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0||p.x>canvas.width)p.vx*=-1;
+    if(p.y<0||p.y>canvas.height)p.vy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fillStyle="red";ctx.fill();
+  }
+  for(let i=0;i<POINTS;i++){
+    for(let j=i+1;j<POINTS;j++){
+      let dx=points[i].x-points[j].x,dy=points[i].y-points[j].y,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<150){ctx.strokeStyle="rgba(255,0,0,"+(1-dist/150)+")";ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(points[i].x,points[i].y);ctx.lineTo(points[j].x,points[j].y);ctx.stroke();}
+    }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+window.addEventListener("resize",()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+</script>
+</body>
+</html>

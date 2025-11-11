@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>503 - Service Unavailable</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background:#000;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      text-align:center;
+      overflow:hidden;
+      padding:10px;
+    }
+    canvas#bg{
+      position:fixed;
+      top:0;left:0;
+      width:100%;height:100%;
+      z-index:-1;
+      background:#000;
+    }
+    .error-container{
+      background:rgba(20,20,20,0.85);
+      border:1px solid orange;
+      border-radius:20px;
+      padding:30px;
+      max-width:600px;
+      width:100%;
+      box-shadow:0 0 30px rgba(255,165,0,0.6);
+    }
+    .error-icon{
+      font-size:4rem;
+      margin-bottom:1rem;
+      color:orange;
+    }
+    .error-code{
+      font-size:8rem;
+      font-weight:bold;
+      margin-bottom:1rem;
+      color:orange;
+      text-shadow:0 0 20px rgba(255,165,0,0.7);
+    }
+    .error-title{
+      font-size:2.5rem;
+      margin-bottom:1rem;
+      font-weight:600;
+      color:#fff;
+    }
+    .error-message{
+      font-size:1.2rem;
+      margin-bottom:2rem;
+      opacity:0.9;
+      line-height:1.6;
+    }
+    .btn-home{
+      display:inline-flex;
+      align-items:center;
+      gap:0.5rem;
+      background:orange;
+      color:white;
+      padding:12px 24px;
+      border:none;
+      border-radius:25px;
+      font-size:1.1rem;
+      font-weight:500;
+      text-decoration:none;
+      transition:all 0.3s ease;
+      box-shadow:0 0 15px orange;
+    }
+    .btn-home:hover{
+      transform:translateY(-2px);
+      box-shadow:0 0 25px rgba(255,165,0,0.9);
+      background:#ffb84d;
+    }
+    @media(max-width:768px){
+      .error-code{font-size:6rem;}
+      .error-title{font-size:2rem;}
+      .error-message{font-size:1rem;}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <div class="error-container">
+    <div class="error-icon"><i class="fas fa-server"></i></div>
+    <div class="error-code">503</div>
+    <h1 class="error-title">Service Unavailable</h1>
+    <p class="error-message">
+      Sorry! Our server is currently unavailable.<br>
+      Please try again later.
+    </p>
+    <a href="/home" class="btn-home">
+      <i class="fas fa-home"></i> Back to Home
+    </a>
+  </div>
+
+  <script>
+    const canvas=document.getElementById("bg");
+    const ctx=canvas.getContext("2d");
+    function resizeCanvas(){
+      canvas.height=window.innerHeight;
+      canvas.width=window.innerWidth;
+    }
+    resizeCanvas();
+    window.addEventListener("resize",resizeCanvas);
+
+    let points=[];
+    const POINTS=60;
+    for(let i=0;i<POINTS;i++){
+      points.push({
+        x:Math.random()*canvas.width,
+        y:Math.random()*canvas.height,
+        vx:(Math.random()-0.5)*0.7,
+        vy:(Math.random()-0.5)*0.7
+      });
+    }
+
+    function animate(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(let p of points){
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.x<0||p.x>canvas.width)p.vx*=-1;
+        if(p.y<0||p.y>canvas.height)p.vy*=-1;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,2,0,Math.PI*2);
+        ctx.fillStyle="orange";
+        ctx.fill();
+      }
+      for(let i=0;i<POINTS;i++){
+        for(let j=i+1;j<POINTS;j++){
+          let dx=points[i].x-points[j].x;
+          let dy=points[i].y-points[j].y;
+          let dist=Math.sqrt(dx*dx+dy*dy);
+          if(dist<150){
+            ctx.strokeStyle="rgba(255,165,0,"+(1-dist/150)+")";
+            ctx.lineWidth=0.7;
+            ctx.beginPath();
+            ctx.moveTo(points[i].x,points[i].y);
+            ctx.lineTo(points[j].x,points[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
